@@ -329,7 +329,7 @@ class Mapper(object):
         current_file = u""
         current_line = 0
         previous_line_is_syncline = False
-        new_file_syncline = re.compile(r'#line 1 "([^"]+)"')
+        new_file_syncline = re.compile(r'#line (1|2) "([^"]+)"')
         new_line_syncline = re.compile(r'#line ([0-9]+)')
         # Read policy.conf file
         with open(self.policy_conf, encoding=u'utf-8') as policy_conf:
@@ -340,10 +340,11 @@ class Mapper(object):
             # regular non-macro line or a syncline itself
             if not previous_line_is_syncline:
                 # Check if this line marks the start of a new file
-                if line.startswith(u'#line 1 "'):
+                if line.startswith(u'#line 1 "') or line.startswith(u'#line 2 "'):
                     # If it does, save the current file/line information
-                    current_file = new_file_syncline.match(line).group(1)
-                    current_line = 1
+                    match = new_file_syncline.match(line)
+                    current_file = match.group(2)
+                    current_line = int(match.group(1))
                     # Mark that we encountered a syncline
                     previous_line_is_syncline = True
                     # Process the next line
