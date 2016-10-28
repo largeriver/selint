@@ -18,7 +18,9 @@
 
 # Location of the Android tree
 # All paths expressed in other variables will be relative to this
-BASE_DIR_GLOBAL = "~/workspace"
+import os
+BASE_DIR_GLOBAL = os.getenv("ANDROID_BUILD_TOP")
+
 
 # Policy source file directories
 # This list contains directories to be searched for policy files specified in
@@ -30,8 +32,14 @@ BASE_DIR_GLOBAL = "~/workspace"
 # POLICY_DIRS = ["external/sepolicy",
 #                ("device/intel/sepolicy", True)]
 # Directories will be processed in the order in which they are specified.
-POLICY_DIRS = ["system/sepolicy",
-               "build/target/board/generic/sepolicy"]
+POLICY_DIRS = ["device/qcom/sepolicy",
+    "external/sepolicy",
+    "device/qcom/sepolicy/common",
+    "device/qcom/sepolicy/test",
+    "device/qcom/sepolicy/msm8916",
+    "device/qcom/sepolicy/common/csvt",
+    "external/tios_sepolicy"
+    ]
 
 # Policy source files
 # This list contains file names to be searched in the POLICY_DIRS specified
