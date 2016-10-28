@@ -1,3 +1,4 @@
+# coding:utf-8
 #
 # Written by Filippo Bonazzi
 # Copyright (C) 2016 Aalto University
@@ -305,10 +306,13 @@ def main(policy, config):
     macros_found = 0
     macros_used = 0
     for k, m in enumerate(selected_macros, start=1):
+        # Processing "domain_auto_trans(olddomain, type, newdomain)" (3/32)...
         print(u"Processing \"{}\" ({}/{})...".format(
             m, k, len(selected_macros)))
         # Get the Rule objects contained in the macro expansion and the initial
         # list of macro suggestions
+        # 展开m对象，并且macro使用建议的列表。不过根据代码，macro_suggestions 这里实际上是拥有单个MacroSuggestion对象的set。
+        # 从后面看来，匹配是多代的，不断有新的sug对象加入到macro_suggestions之中
         rules, macro_suggestions = process_macro(m, MAPPER)
         if not rules:
             print(u"Macro \"{}\" does not expand to any supported".format(m) +
@@ -316,6 +320,10 @@ def main(policy, config):
         # Query the policy with regexes
         total_queries += len(rules)
         overall_rules = []
+
+        #
+        # overall_rules 是使用了任一一条宏展开后的规则中的的rule的集合。
+        # 也就是policy中的任何策略，只要和宏定义中的任一一条套的上，就放在results中
         for r in itervalues(rules):
             results = query_for_rule(policy, r)
             if results:
@@ -369,6 +377,7 @@ def main(policy, config):
                                 if x.usage not in plugin_conf.USAGES_IGNORE]
         # Discard suggestions entirely made up of rules that already come from
         # a macro expansion
+        '''
         for sug in selected_suggestions:
             added = False
             for x in sug.rules:
@@ -381,6 +390,24 @@ def main(policy, config):
                         break
                 if added:
                     break
+        '''
+
+        for sug in selected_suggestions:
+            added = True
+            for x in sug.rules:
+                for y in NON_IGNORED_MAPPING[str(x)]:
+                    if y in macrousages_filelines:
+                        # We have at least one rule that does not come from a
+                        # macro expansion
+
+                        added = False
+                        break
+                if not added:
+                    break
+            if added:
+                global_suggestions.add(sug)
+
+
         # Print time info
         oldpart = part
         part = default_timer()
@@ -396,6 +423,8 @@ def main(policy, config):
                 LOG.debug(u"Usage not found: \"%s\"", x)
             else:
                 macros_found += 1
+
+    ### 删除已经被更合适更大的宏所包含的宏定义
     # Discard suggestions which are a subset of another with the same score
     removal_candidates = []
     # For each suggestion
@@ -409,6 +438,8 @@ def main(policy, config):
         # the same macro name containing exactly the same rules: therefore
         # we are only interested in strict subsets (x < y), without "<=".
         if any(x < y for y in global_suggestions if x.score <= y.score):
+            # for debug
+            print(u"remove nested suggestions {}:".format(x))
             removal_candidates.append(x)
     for x in removal_candidates:
         global_suggestions.remove(x)
@@ -417,6 +448,16 @@ def main(policy, config):
     # others
     global_suggestions = [
         x for x in global_suggestions if x.usage not in macrousages_dict]
+
+    # 输出结果
+    def print_mapped_rule(rule):
+        import linecache
+        from policysource.mapping import Mapping
+        name, line = Mapping.split_fileline(rule.fileline)
+        print(u"{}:\n\t{}\n\t{}".format(rule.fileline, rule.rule, linecache.getline(name, int(line)).strip()))
+
+        #print(u"{}:\n\t{}\n\t{}".format(rule.fileline,rule.rule,rule.original_rule))
+
     # Print output
     print("")
     for x in global_suggestions:
@@ -425,6 +466,7 @@ def main(policy, config):
             r_str = str(r)
             rule = MAPPER.rule_factory(r_str)
             rls = policy.mapping.rules[rule.up_to_class]
+            # y MappedRule
             for y in rls:
                 # Don't print rules coming from explicitly ignored paths
                 # We have to do this here as well, because the mapping contains
@@ -435,7 +477,7 @@ def main(policy, config):
                 if y_rule.rtype in policysource.mapping.AVRULES:
                     # If the rules have at least one permission in common
                     if y_rule.permset & rule.permset:
-                        print(y)
+                        print_mapped_rule(y)
                 elif y_rule.rtype in policysource.mapping.TERULES:
                     # If the rules have the same default type, and possibly
                     # object name
@@ -444,10 +486,10 @@ def main(policy, config):
                             # If either has an object name, it must be the same
                             if y_rule.objname and rule.objname:
                                 if y_rule.objname == rule.objname:
-                                    print(y)
+                                    print_mapped_rule(y)
                         else:
                             # If neither has an object name just print
-                            print(y)
+                            print_mapped_rule(y)
         print(u"Corresponding rules in the macro expansion:")
         print(x.usage_expansion)
         print(u"")
