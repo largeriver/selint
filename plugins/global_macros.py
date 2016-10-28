@@ -1,3 +1,4 @@
+# coding:utf-8
 #
 # Written by Filippo Bonazzi
 # Copyright (C) 2015 Aalto University
@@ -19,17 +20,21 @@ u"""Plugin to analyse usage of global macros and suggest new ones."""
 # Necessary for Python 2/3 compatibility
 from __future__ import absolute_import
 from __future__ import division
-from future.utils import iteritems
-from builtins import range
 
 import itertools
+import logging
 import os
 import os.path
-import logging
-import policysource
-import policysource.policy
-import policysource.mapping
+from builtins import range
+
+from future.utils import iteritems
+
 import plugins.config.global_macros as plugin_conf
+import policysource
+import policysource.mapping
+import policysource.policy
+
+#logging.basicConfig(level=logging.DEBUG)
 
 # Required by selint
 REQUIRED_RULES = plugin_conf.SUPPORTED_RULE_TYPES
@@ -69,6 +74,19 @@ class GlobalMacroSuggestion(object):
         return self.score >= other.score
 
 
+def printf_filelines(filelines):
+    '''
+    print filelines and content
+    :param filelines:
+    :return:
+    '''
+    import linecache
+    from policysource.mapping import Mapping
+    for fl in filelines:
+        name, line = Mapping.split_fileline(fl)
+        print("{} \n\t{}".format(fl, linecache.getline(name, int(line)).strip()))
+
+
 def main(policy, config):
     """Suggest new usages of global_macros."""
     # Check that we have been fed a valid policy
@@ -91,6 +109,7 @@ def main(policy, config):
         if policy.macro_defs[m].file_defined.endswith(u"global_macros"):
             exp = policy.macro_defs[m].expand()
             args = frozenset(x for x in exp.split() if x not in u"{}")
+            logging.debug("{}:{}".format(m, args))
             macroset_dict[m] = args
             macroset_labels[args] = m
     # Prepare macro usages dictionaries
@@ -118,6 +137,12 @@ def main(policy, config):
         permset = set()
         # Merge the various permission sets deriving from these rules
         filtered_rules = []
+
+        # logging.debug("\nrutc {}".format(rutc))
+        # logging.debug("rulse {}".format(rules))
+        # logging.debug("original_rule {}".format(rules[0].original_rule))
+
+
         for r in rules:
             # Discard rules coming from ignored paths
             if not r.fileline.startswith(FULL_IGNORE_PATHS):
@@ -139,6 +164,8 @@ def main(policy, config):
         # Cache set fitting results for speed
         # Convert the permset to a frozen set to use it as a dictionary key
         # together with the class.
+
+
         permset_frozen = frozenset(permset)
         if (tclass, permset_frozen) in cached_fits:
             # If the result is cached, use it
@@ -232,8 +259,11 @@ def main(policy, config):
                 part.append(x)
         part.sort(reverse=True)
         if full or part:
+            print(u"-" * 10)
             print(u"The following macros match a rule on these lines:")
-            print(u"\n".join(filelines))
+            # print(u"\n".join(filelines))
+            printf_filelines(filelines)
+
         if full:
             # Print full match suggestion(s)
             print(u"Full match:")
@@ -259,7 +289,7 @@ def main(policy, config):
             # Print partial match suggestion(s)
             print(u"Partial match:")
             print(u"\n".join([
-                u"{}: {}%".format(x.name, x.score * 100) for x in part]))
+                                 u"{}: {}%".format(x.name, x.score * 100) for x in part]))
             # Compute suggested usage
             rutc = part[0].applies_to
             orig_permset = part[0].original_permset
