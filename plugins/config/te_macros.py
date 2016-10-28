@@ -21,6 +21,7 @@
 # e.g. to ignore AOSP:
 # RULE_IGNORE_PATHS = ["external/sepolicy"]
 RULE_IGNORE_PATHS = ["external/sepolicy",
+                     "device/qcom/sepolicy",
                      "build/target/board/generic/sepolicy"]
 
 # Only make suggestions for the following rule types

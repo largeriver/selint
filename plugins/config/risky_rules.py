@@ -75,7 +75,7 @@ TYPES["user_app"] = ["untrusted_app"]
 # Core system domains
 # These types cover core system services launched by the init system.
 # While not directly involved with security, these services are very important.
-SCORE_TRUST["core_domains"] = 20
+SCORE_TRUST["core_domains"] = 10
 SCORE_RISK["core_domains"] = 15
 TYPES["core_domains"] = ["adbd", "adbd_socket", "init", "init_shell",
                          "init_tmpfs", "installd", "installd_exec",
@@ -140,6 +140,7 @@ CAPABILITIES = ["capability", "capability2"]
 # e.g. to ignore AOSP:
 # RULE_IGNORE_PATHS = ["external/sepolicy"]
 RULE_IGNORE_PATHS = ["external/sepolicy",
+                     "device/qcom/sepolicy",
                      "build/target/board/generic/sepolicy"]
 # RULE_IGNORE_PATHS = []
 

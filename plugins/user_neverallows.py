@@ -1,3 +1,4 @@
+# coding:utf-8
 #
 # Written by Filippo Bonazzi
 # Copyright (C) 2016 Aalto University
